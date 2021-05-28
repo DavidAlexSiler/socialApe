@@ -3,33 +3,32 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-exports.helloWorld = functions.https.onRequest((request, response) => {
-    functions.logger.info("Hello logs!", {structuredData: true});
-    response.send("Hello from ASSTOPIA!");
-});
+const express = require('express');
+const app = express();
 
-exports.getSpeeches = functions.https.onRequest((req, res) => {
+app.get('/speeches', (req, res) => {
     admin
-    .firestore()
-    .collection('speeches')
-    .get()  
-    .then(data => {
-        let speeches = [];
-        data.forEach(doc => {
-            speeches.push(doc.data());
-        });
-            return res.json(speeches);
-        })
-    .catch(err => console.error(err));
-});
+        .firestore()
+        .collection('speeches')
+        .get()  
+        .then(data => {
+            let speeches = [];
+            data.forEach(doc => {
+                speeches.push({
+                    speechId: doc.id,
+                    body: doc.data().body,
+                    userHandle: doc.data().userHandle,
+                    createdAt: doc.data().createdAt
+                });
+            });
+                return res.json(speeches);
+            })
+        .catch(err => console.error(err));
+})
 
-exports.createSpeeches = functions.https.onRequest((req, res) => {
-    if(req.method !== 'POST'){
-        return res.status(400).json({error: 'Method not Allowed'})
-    }
+
+
+app.post('/speech', (req, res) => {
     const newSpeech = {
         body:  req.body.body,
         userHandle: req.body.userHandle,
@@ -43,5 +42,8 @@ exports.createSpeeches = functions.https.onRequest((req, res) => {
     })
     .catch(err => {
         res.status(500).json({error: 'something went wrong'});
+        console.error(err);
     })
-})
+});
+
+exports.api = functions.https.onRequest(app);
